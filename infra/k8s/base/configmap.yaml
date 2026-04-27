@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: groupsapp-config
+data:
+  POSTGRES_HOST: "groupsapp-postgres.cvrz1c3qlek9.us-east-1.rds.amazonaws.com"
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: "postgres"
+  # RDS PostgreSQL: habilitar TLS en cliente pg (NestJS services)
+  POSTGRES_SSL: "true"
+  POSTGRES_SSL_REJECT_UNAUTHORIZED: "false"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  RABBITMQ_EXCHANGE: "groupsapp.events.v1"
+  RABBITMQ_RETRY_EXCHANGE: "groupsapp.retry.v1"
+  RABBITMQ_DLX_EXCHANGE: "groupsapp.dlx.v1"
+  NOTIFICATION_QUEUE: "notification.message-created"
+  NOTIFICATION_RETRY_QUEUE: "notification.message-created.retry"
+  NOTIFICATION_DLQ: "notification.message-created.dlq"
+  NOTIFICATION_MAX_RETRIES: "3"
+  NOTIFICATION_RETRY_TTL_MS: "5000"
+  NOTIFICATION_FAIL_MODE: "off"
+  PRESENCE_TTL_SECONDS: "25"
+  OUTBOX_POLL_INTERVAL_MS: "2000"
+  OUTBOX_BATCH_SIZE: "20"
+  OUTBOX_LEASE_SECONDS: "15"
+  MESSAGE_SHARDS: "16"
+  AWS_REGION: "us-east-1"
+  S3_BUCKET: "groupsapp-files-drestrepoa-2026"
+  S3_UPLOAD_URL_EXPIRES_SECONDS: "900"
+  S3_DOWNLOAD_URL_EXPIRES_SECONDS: "900"

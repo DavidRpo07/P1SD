@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package users;
+
+service UserService {
+  rpc AddContact (AddContactRequest) returns (SimpleAck);
+  rpc ListContacts (ListContactsRequest) returns (ListContactsResponse);
+  rpc BlockUser (BlockUserRequest) returns (SimpleAck);
+  rpc CheckDirectMessagingPolicy (CheckDirectMessagingPolicyRequest) returns (CheckDirectMessagingPolicyResponse);
+  rpc SetPresence (SetPresenceRequest) returns (SimpleAck);
+  rpc GetPresence (GetPresenceRequest) returns (GetPresenceResponse);
+}
+
+message AddContactRequest {
+  string owner_user_id = 1;
+  string contact_user_id = 2;
+}
+
+message ListContactsRequest {
+  string owner_user_id = 1;
+}
+
+message ContactItem {
+  string user_id = 1;
+  string display_name = 2;
+  string email = 3;
+}
+
+message ListContactsResponse {
+  repeated ContactItem items = 1;
+}
+
+message BlockUserRequest {
+  string blocker_user_id = 1;
+  string blocked_user_id = 2;
+}
+
+message CheckDirectMessagingPolicyRequest {
+  string requester_user_id = 1;
+  string peer_user_id = 2;
+}
+
+message CheckDirectMessagingPolicyResponse {
+  bool allowed = 1;
+  string reason = 2;
+}
+
+message SetPresenceRequest {
+  string user_id = 1;
+  string status = 2; // online | offline
+}
+
+message GetPresenceRequest {
+  string user_id = 1;
+}
+
+message GetPresenceResponse {
+  bool online = 1;
+  string state = 2;
+  int32 ttl_seconds = 3;
+}
+
+message SimpleAck {
+  bool ok = 1;
+}

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GroupsApp Chat UI</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>GroupsApp</h1>
+        <p>Interfaz de chat para grupos, canales y DM</p>
+      </div>
+      <div class="topbar-actions">
+        <span id="auth-status">No autenticado</span>
+        <span id="presence-heartbeat-status" class="badge">Heartbeat inactivo</span>
+        <button id="refresh-all" class="ghost">Recargar</button>
+        <button id="logout" class="ghost">Salir</button>
+      </div>
+    </header>
+
+    <main class="app-layout">
+      <aside class="card sidebar-left">
+        <section>
+          <h2>Autenticación</h2>
+          <form id="register-form" class="stack">
+            <input name="email" type="email" placeholder="email" required />
+            <input name="password" type="password" placeholder="password" required />
+            <input name="display_name" type="text" placeholder="display name" required />
+            <button type="submit">Registrar</button>
+          </form>
+          <form id="login-form" class="stack compact-gap">
+            <input name="email" type="email" placeholder="email" required />
+            <input name="password" type="password" placeholder="password" required />
+            <button type="submit">Login</button>
+          </form>
+        </section>
+
+        <section>
+          <h2>Contactos</h2>
+          <form id="add-contact-form" class="stack">
+            <input id="contact-user-id" placeholder="user_id" required />
+            <button type="submit">Agregar contacto</button>
+          </form>
+          <div id="contacts-list" class="list"></div>
+        </section>
+
+        <section>
+          <h2>Grupos</h2>
+          <form id="create-group-form" class="stack">
+            <input id="group-name" placeholder="nombre grupo" required />
+            <input id="group-description" placeholder="descripcion" />
+            <button type="submit">Crear grupo</button>
+          </form>
+          <div id="groups-list" class="list"></div>
+        </section>
+      </aside>
+
+      <section class="card chat-main">
+        <div class="chat-header">
+          <h2 id="chat-title">Selecciona un chat</h2>
+          <p id="chat-subtitle">Elige un canal o contacto desde la izquierda</p>
+        </div>
+
+        <div id="messages-list" class="messages"></div>
+
+        <form id="send-message-form" class="composer">
+          <div class="composer-row">
+            <input id="message-body" placeholder="Escribe un mensaje..." />
+            <label class="file-picker">
+              <input id="message-files" type="file" multiple />
+              Adjuntar
+            </label>
+            <button type="submit">Enviar</button>
+          </div>
+          <div id="selected-files" class="muted">Sin archivos seleccionados</div>
+        </form>
+      </section>
+
+      <aside class="card sidebar-right">
+        <section>
+          <h2>Detalle de grupo</h2>
+          <p id="selected-group-label" class="muted">Sin grupo seleccionado</p>
+        </section>
+
+        <section>
+          <h3>Canales</h3>
+          <form id="create-channel-form" class="stack">
+            <input id="channel-name" placeholder="nombre canal" required />
+            <input id="channel-description" placeholder="descripcion" />
+            <button type="submit">Crear canal</button>
+          </form>
+          <div id="channels-list" class="list"></div>
+        </section>
+
+        <section>
+          <h3>Miembros</h3>
+          <form id="add-member-form" class="row">
+            <select id="member-select"></select>
+            <button type="submit">Agregar</button>
+          </form>
+          <div id="members-list" class="list"></div>
+        </section>
+
+        <section>
+          <h3>Salida</h3>
+          <pre id="output"></pre>
+        </section>
+      </aside>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

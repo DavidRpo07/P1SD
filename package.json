@@ -1,0 +1,33 @@
+{
+  "name": "groupsapp-distributed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GroupsApp: Sistema de Mensajería Distribuida",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n GATEWAY,AUTH,GROUP,USER,MESSAGE,NOTIF -c blue,green,yellow,white,magenta,cyan \"npm run start:dev -w apps/api-gateway\" \"npm run start:dev -w apps/auth-service\" \"npm run start:dev -w apps/group-service\" \"npm run start:dev -w apps/user-service\" \"npm run start:dev -w apps/message-service\" \"npm run start:dev -w apps/notification-service\"",
+    "build": "npm run build --workspaces --if-present",
+    "start:gateway": "npm run start:dev -w apps/api-gateway",
+    "start:auth": "npm run start:dev -w apps/auth-service",
+    "start:group": "npm run start:dev -w apps/group-service",
+    "start:user": "npm run start:dev -w apps/user-service",
+    "start:message": "npm run start:dev -w apps/message-service",
+    "start:notification": "npm run start:dev -w apps/notification-service",
+    "test:integration": "bash scripts/integration-test.sh",
+    "test:health:prod": "bash scripts/aws/health-check.sh",
+    "test:smoke:prod": "bash scripts/aws/smoke-test-prod.sh",
+    "test:integration:prod": "bash scripts/aws/integration-test-prod.sh",
+    "aws:ecr:push": "bash scripts/aws/ecr-push.sh",
+    "aws:registry:push": "bash scripts/aws/registry-push.sh",
+    "aws:rds:init": "bash scripts/aws/init-rds-databases.sh",
+    "aws:k8s:secrets": "bash scripts/aws/k8s-create-secrets.sh",
+    "aws:k8s:deploy": "bash scripts/aws/k8s-deploy.sh"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.4",
+    "concurrently": "^9.1.2"
+  }
+}

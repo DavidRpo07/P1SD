@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: groupsapp
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - redis.yaml
+  - rabbitmq.yaml
+  - auth-service.yaml
+  - group-service.yaml
+  - user-service.yaml
+  - message-service.yaml
+  - notification-service.yaml
+  - api-gateway.yaml
+  - frontend.yaml

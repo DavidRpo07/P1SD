@@ -1,0 +1,236 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: groupsapp-postgres
+    environment:
+      POSTGRES_USER: groupsapp
+      POSTGRES_PASSWORD: groupsapp
+      POSTGRES_DB: groupsapp_auth
+      POSTGRES_MULTIPLE_DATABASES: groupsapp_group,groupsapp_message,groupsapp_user,groupsapp_notification
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U groupsapp -d groupsapp_auth']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: groupsapp-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: groupsapp-rabbitmq
+    user: '0:0'
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        chown -R rabbitmq:rabbitmq /var/lib/rabbitmq || true
+        if [ -f /var/lib/rabbitmq/.erlang.cookie ]; then
+          chmod 400 /var/lib/rabbitmq/.erlang.cookie || true
+        fi
+        exec rabbitmq-server
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    container_name: groupsapp-auth
+    environment:
+      AUTH_GRPC_URL: 0.0.0.0:50051
+      JWT_SECRET: super-secret-dev-key
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: groupsapp
+      POSTGRES_PASSWORD: groupsapp
+      POSTGRES_DB: groupsapp_auth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - '50051:50051'
+
+  group-service:
+    build:
+      context: .
+      dockerfile: apps/group-service/Dockerfile
+    container_name: groupsapp-group
+    environment:
+      GROUP_GRPC_URL: 0.0.0.0:50052
+      AUTH_SERVICE_GRPC_URL: auth-service:50051
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: groupsapp
+      POSTGRES_PASSWORD: groupsapp
+      POSTGRES_DB: groupsapp_group
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - '50052:50052'
+
+  message-service:
+    build:
+      context: .
+      dockerfile: apps/message-service/Dockerfile
+    container_name: groupsapp-message
+    environment:
+      MESSAGE_GRPC_URL: 0.0.0.0:50053
+      GROUP_SERVICE_GRPC_URL: group-service:50052
+      USER_SERVICE_GRPC_URL: user-service:50054
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_EXCHANGE: groupsapp.events.v1
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: groupsapp
+      POSTGRES_PASSWORD: groupsapp
+      POSTGRES_DB: groupsapp_message
+      OUTBOX_POLL_INTERVAL_MS: 2000
+      OUTBOX_BATCH_SIZE: 20
+      OUTBOX_LEASE_SECONDS: 15
+      MESSAGE_SHARDS: ${MESSAGE_SHARDS:-16}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_UPLOAD_URL_EXPIRES_SECONDS: ${S3_UPLOAD_URL_EXPIRES_SECONDS:-900}
+      S3_DOWNLOAD_URL_EXPIRES_SECONDS: ${S3_DOWNLOAD_URL_EXPIRES_SECONDS:-900}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      group-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - '50053:50053'
+
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/Dockerfile
+    container_name: groupsapp-user
+    environment:
+      USER_GRPC_URL: 0.0.0.0:50054
+      AUTH_SERVICE_GRPC_URL: auth-service:50051
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: groupsapp
+      POSTGRES_PASSWORD: groupsapp
+      POSTGRES_DB: groupsapp_user
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PRESENCE_TTL_SECONDS: 25
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - '50054:50054'
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    container_name: groupsapp-notification
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_EXCHANGE: groupsapp.events.v1
+      RABBITMQ_RETRY_EXCHANGE: groupsapp.retry.v1
+      RABBITMQ_DLX_EXCHANGE: groupsapp.dlx.v1
+      NOTIFICATION_QUEUE: notification.message-created
+      NOTIFICATION_RETRY_QUEUE: notification.message-created.retry
+      NOTIFICATION_DLQ: notification.message-created.dlq
+      NOTIFICATION_MAX_RETRIES: 3
+      NOTIFICATION_RETRY_TTL_MS: 5000
+      NOTIFICATION_FAIL_MODE: ${NOTIFICATION_FAIL_MODE:-off}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: groupsapp
+      POSTGRES_PASSWORD: groupsapp
+      POSTGRES_DB: groupsapp_notification
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      message-service:
+        condition: service_started
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    container_name: groupsapp-gateway
+    environment:
+      AUTH_GRPC_URL: auth-service:50051
+      GROUP_GRPC_URL: group-service:50052
+      MESSAGE_GRPC_URL: message-service:50053
+      USER_GRPC_URL: user-service:50054
+    depends_on:
+      auth-service:
+        condition: service_started
+      group-service:
+        condition: service_started
+      message-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: groupsapp-nginx
+    depends_on:
+      api-gateway:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/html:/usr/share/nginx/html:ro
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

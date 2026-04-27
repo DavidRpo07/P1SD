@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - storage-class.yaml
+  - alb-ingressclassparams.yaml
+  - alb-ingressclass.yaml
+  - ingress-alb.yaml
+  - hpa.yaml
+
+images:
+  - name: groupsapp-api-gateway
+    newName: 751504685358.dkr.ecr.us-east-1.amazonaws.com/groupsapp-api-gateway
+    newTag: v2-ssl
+  - name: groupsapp-auth-service
+    newName: 751504685358.dkr.ecr.us-east-1.amazonaws.com/groupsapp-auth-service
+    newTag: v2-ssl
+  - name: groupsapp-group-service
+    newName: 751504685358.dkr.ecr.us-east-1.amazonaws.com/groupsapp-group-service
+    newTag: v2-ssl
+  - name: groupsapp-user-service
+    newName: 751504685358.dkr.ecr.us-east-1.amazonaws.com/groupsapp-user-service
+    newTag: v2-ssl
+  - name: groupsapp-message-service
+    newName: 751504685358.dkr.ecr.us-east-1.amazonaws.com/groupsapp-message-service
+    newTag: v2-ssl
+  - name: groupsapp-notification-service
+    newName: 751504685358.dkr.ecr.us-east-1.amazonaws.com/groupsapp-notification-service
+    newTag: v2-ssl
+  - name: groupsapp-frontend
+    newName: 751504685358.dkr.ecr.us-east-1.amazonaws.com/groupsapp-frontend
+    newTag: v1

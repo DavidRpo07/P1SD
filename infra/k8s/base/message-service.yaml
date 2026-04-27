@@ -1,0 +1,156 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: message-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: message-service
+  template:
+    metadata:
+      labels:
+        app: message-service
+    spec:
+      containers:
+        - name: message-service
+          image: groupsapp-message-service:latest
+          ports:
+            - containerPort: 50053
+              name: grpc
+          env:
+            - name: MESSAGE_GRPC_URL
+              value: "0.0.0.0:50053"
+            - name: GROUP_SERVICE_GRPC_URL
+              value: "group-service:50052"
+            - name: USER_SERVICE_GRPC_URL
+              value: "user-service:50054"
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: groupsapp-secrets
+                  key: RABBITMQ_URL
+            - name: RABBITMQ_EXCHANGE
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: RABBITMQ_EXCHANGE
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: POSTGRES_PORT
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_SSL
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: POSTGRES_SSL
+            - name: POSTGRES_SSL_REJECT_UNAUTHORIZED
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: POSTGRES_SSL_REJECT_UNAUTHORIZED
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: groupsapp-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: "groupsapp_message"
+            - name: OUTBOX_POLL_INTERVAL_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: OUTBOX_POLL_INTERVAL_MS
+            - name: OUTBOX_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: OUTBOX_BATCH_SIZE
+            - name: OUTBOX_LEASE_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: OUTBOX_LEASE_SECONDS
+            - name: MESSAGE_SHARDS
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: MESSAGE_SHARDS
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: AWS_REGION
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: S3_BUCKET
+            - name: S3_UPLOAD_URL_EXPIRES_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: S3_UPLOAD_URL_EXPIRES_SECONDS
+            - name: S3_DOWNLOAD_URL_EXPIRES_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: groupsapp-config
+                  key: S3_DOWNLOAD_URL_EXPIRES_SECONDS
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: groupsapp-secrets
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: groupsapp-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: groupsapp-secrets
+                  key: AWS_SESSION_TOKEN
+                  optional: true
+          readinessProbe:
+            tcpSocket:
+              port: 50053
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 50053
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 700m
+              memory: 1024Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: message-service
+spec:
+  selector:
+    app: message-service
+  ports:
+    - name: grpc
+      port: 50053
+      targetPort: 50053
